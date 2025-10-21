@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧資料儲存系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定義切換動畫 */
+        .theme-toggle-icon {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+        .dark .sun-icon {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        .dark .moon-icon {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .moon-icon {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        .data-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .data-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .dark .data-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        /* 讓備註中的換行生效 */
+        .notes-content {
+            white-space: pre-wrap;
+        }
+    </style>
+    <script>
+        // 設定 Tailwind CSS 的暗黑模式
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans antialiased transition-colors duration-300">
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <!-- 頁首和主題切換器 -->
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">智慧資料儲存系統</h1>
+            <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-900 relative w-10 h-10 overflow-hidden">
+                <span class="sun-icon theme-toggle-icon absolute inset-0 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                </span>
+                <span class="moon-icon theme-toggle-icon absolute inset-0 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                </span>
+            </button>
+        </header>
+
+        <main>
+            <!-- 輸入區域 -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
+                <form id="add-data-form">
+                    <h2 class="text-lg font-medium mb-4">新增資料</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="data-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">標題 / 檔名 / 連結</label>
+                            <input type="text" id="data-title" required class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="data-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">資料類型</label>
+                            <select id="data-type" class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="text">文字</option>
+                                <option value="file">檔案</option>
+                                <option value="video">影片</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="data-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">備註內容</label>
+                        <textarea id="data-notes" rows="4" class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" placeholder="可在此輸入詳細說明..."></textarea>
+                    </div>
+                    <button type="submit" class="mt-4 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition-transform transform hover:scale-102">
+                        儲存資料
+                    </button>
+                </form>
+            </div>
+
+            <!-- 搜尋與結果顯示區域 -->
+            <div class="mb-8">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                         <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                    </div>
+                    <input type="search" id="search-input" class="block w-full p-3 pl-10 text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" placeholder="依關鍵字或日期 (YYYY-MM-DD) 搜尋...">
+                </div>
+            </div>
+
+            <div id="data-container" class="space-y-6">
+                <!-- 資料將會動態插入此處 -->
+            </div>
+             <!-- 提示訊息 -->
+            <div id="placeholder" class="text-center py-12 hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">沒有找到資料</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">試著新增一些資料，或調整您的搜尋關鍵字。</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.getElementById('theme-toggle');
+            const htmlElement = document.documentElement;
+            const addDataForm = document.getElementById('add-data-form');
+            const dataTitleInput = document.getElementById('data-title');
+            const dataTypeInput = document.getElementById('data-type');
+            const dataNotesInput = document.getElementById('data-notes');
+            const dataContainer = document.getElementById('data-container');
+            const searchInput = document.getElementById('search-input');
+            const placeholder = document.getElementById('placeholder');
+
+            // --- 主題切換 ---
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                htmlElement.classList.add('dark');
+            }
+            themeToggle.addEventListener('click', () => {
+                htmlElement.classList.toggle('dark');
+                localStorage.theme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
+            });
+
+            // --- 資料處理核心 ---
+            const getStoredData = () => JSON.parse(localStorage.getItem('myDataSystem') || '[]');
+            const saveStoredData = (data) => localStorage.setItem('myDataSystem', JSON.stringify(data));
+
+            const dataIcons = {
+                text: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />',
+                file: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />',
+                video: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />',
+            };
+
+            const renderData = (dataToRender) => {
+                dataContainer.innerHTML = '';
+                if (dataToRender.length === 0) {
+                    placeholder.classList.remove('hidden');
+                } else {
+                    placeholder.classList.add('hidden');
+                }
+
+                dataToRender.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'data-card bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-lg flex flex-col md:flex-row';
+                    
+                    const formattedDate = new Date(item.timestamp).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                    const formattedTime = new Date(item.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+
+                    card.innerHTML = `
+                        <div class="flex-shrink-0 w-16 h-16 mb-4 md:mb-0 md:mr-5 bg-indigo-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                            <svg class="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">${dataIcons[item.type]}</svg>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white break-all">${escapeHTML(item.title)}</h3>
+                                <button data-id="${item.id}" class="delete-btn ml-4 p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${formattedDate} ${formattedTime}</p>
+                            ${item.notes ? `<p class="notes-content mt-3 text-gray-700 dark:text-gray-300">${escapeHTML(item.notes)}</p>` : ''}
+                        </div>
+                    `;
+                    dataContainer.appendChild(card);
+                });
+            };
+
+            const handleAddItem = (e) => {
+                e.preventDefault();
+                const title = dataTitleInput.value.trim();
+                if (!title) return;
+
+                const newItem = {
+                    id: Date.now(),
+                    title: title,
+                    type: dataTypeInput.value,
+                    notes: dataNotesInput.value.trim(),
+                    timestamp: new Date().toISOString()
+                };
+
+                const allData = getStoredData();
+                allData.unshift(newItem); // 將新項目加到最前面
+                saveStoredData(allData);
+                renderData(allData);
+                
+                // 清空表單
+                addDataForm.reset();
+                searchInput.value = '';
+            };
+            
+            const handleContainerClick = (e) => {
+                const deleteButton = e.target.closest('.delete-btn');
+                if (deleteButton) {
+                    const idToDelete = parseInt(deleteButton.dataset.id, 10);
+                    let allData = getStoredData();
+                    allData = allData.filter(item => item.id !== idToDelete);
+                    saveStoredData(allData);
+                    // 重新渲染，如果搜尋框有值，則根據搜尋框的值渲染
+                    handleSearch();
+                }
+            };
+            
+            const handleSearch = () => {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const allData = getStoredData();
+
+                if (!searchTerm) {
+                    renderData(allData);
+                    return;
+                }
+
+                const filteredData = allData.filter(item => {
+                    const itemDate = new Date(item.timestamp).toISOString().split('T')[0];
+                    return (
+                        item.title.toLowerCase().includes(searchTerm) ||
+                        item.notes.toLowerCase().includes(searchTerm) ||
+                        itemDate.includes(searchTerm)
+                    );
+                });
+                renderData(filteredData);
+            };
+            
+            const escapeHTML = (str) => {
+                const p = document.createElement('p');
+                p.textContent = str;
+                return p.innerHTML;
+            };
+
+            // --- 事件監聽器 ---
+            addDataForm.addEventListener('submit', handleAddItem);
+            dataContainer.addEventListener('click', handleContainerClick);
+            searchInput.addEventListener('input', handleSearch);
+
+            // --- 初始載入 ---
+            const initialData = getStoredData();
+            renderData(initialData);
+        });
+    </script>
+</body>
+</html>
+
