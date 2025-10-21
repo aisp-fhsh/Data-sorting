@@ -36,6 +36,19 @@
         .notes-content {
             white-space: pre-wrap;
         }
+        /* 按鈕禁用時的樣式 */
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: scale(1) !important;
+        }
+        /* 檔案上傳輸入框樣式 */
+        input[type="file"]::file-selector-button {
+            @apply bg-indigo-50 border border-indigo-300 text-indigo-700 font-semibold rounded-lg px-4 py-2 mr-4 hover:bg-indigo-100 cursor-pointer transition-colors;
+        }
+        input[type="file"] {
+             @apply text-sm text-gray-500;
+        }
     </style>
     <script>
         // 設定 Tailwind CSS 的暗黑模式
@@ -65,25 +78,38 @@
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
                 <form id="add-data-form">
                     <h2 class="text-lg font-medium mb-4">新增資料</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label for="data-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">標題 / 檔名 / 連結</label>
-                            <input type="text" id="data-title" required class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
+                    <div class="space-y-4">
                         <div>
                             <label for="data-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">資料類型</label>
                             <select id="data-type" class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="text">文字</option>
+                                <option value="text">文字 / 連結</option>
                                 <option value="file">檔案</option>
                                 <option value="video">影片</option>
                             </select>
                         </div>
+                        <div>
+                            <label for="data-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">標題 <span class="text-red-500">*</span></label>
+                            <input type="text" id="data-title" required class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：專案會議紀錄">
+                        </div>
+                        
+                        <!-- 來源輸入區塊 -->
+                        <div id="source-input-container">
+                            <div id="text-source-wrapper">
+                               <label for="data-source" class="block text-sm font-medium text-gray-700 dark:text-gray-300">連結 (可省略)</label>
+                               <input type="text" id="data-source" class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://example.com">
+                            </div>
+                            <div id="file-source-wrapper" class="hidden">
+                                <label for="data-file" class="block text-sm font-medium text-gray-700 dark:text-gray-300">選擇檔案 (可省略)</label>
+                                <input type="file" id="data-file" class="mt-1 block w-full p-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="data-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">備註內容 (可省略)</label>
+                            <textarea id="data-notes" rows="4" class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" placeholder="可在此輸入詳細說明..."></textarea>
+                        </div>
                     </div>
-                    <div>
-                        <label for="data-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">備註內容</label>
-                        <textarea id="data-notes" rows="4" class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" placeholder="可在此輸入詳細說明..."></textarea>
-                    </div>
-                    <button type="submit" class="mt-4 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition-transform transform hover:scale-102">
+                    <button type="submit" id="submit-button" class="mt-6 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition-transform transform hover:scale-102">
                         儲存資料
                     </button>
                 </form>
@@ -103,27 +129,46 @@
                 <!-- 資料將會動態插入此處 -->
             </div>
              <!-- 提示訊息 -->
-            <div id="placeholder" class="text-center py-12 hidden">
+            <div id="placeholder" class="text-center py-12">
                 <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">沒有找到資料</h3>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">試著新增一些資料，或調整您的搜尋關鍵字。</p>
+                <h3 id="placeholder-title" class="mt-2 text-lg font-medium text-gray-900 dark:text-white">正在連接雲端...</h3>
+                <p id="placeholder-text" class="mt-1 text-sm text-gray-500 dark:text-gray-400">請稍候，正在為您準備資料。</p>
             </div>
         </main>
     </div>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-    <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM 元素 ---
             const themeToggle = document.getElementById('theme-toggle');
             const htmlElement = document.documentElement;
             const addDataForm = document.getElementById('add-data-form');
             const dataTitleInput = document.getElementById('data-title');
             const dataTypeInput = document.getElementById('data-type');
+            const dataSourceInput = document.getElementById('data-source');
+            const dataFileInput = document.getElementById('data-file');
+            const textSourceWrapper = document.getElementById('text-source-wrapper');
+            const fileSourceWrapper = document.getElementById('file-source-wrapper');
             const dataNotesInput = document.getElementById('data-notes');
+            const submitButton = document.getElementById('submit-button');
             const dataContainer = document.getElementById('data-container');
             const searchInput = document.getElementById('search-input');
             const placeholder = document.getElementById('placeholder');
+            const placeholderTitle = document.getElementById('placeholder-title');
+            const placeholderText = document.getElementById('placeholder-text');
+
+            // --- 全域變數 ---
+            let db, auth, storage, userId;
+            let currentData = [];
+            let unsubscribeFromFirestore = null;
 
             // --- 主題切換 ---
             if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -134,20 +179,86 @@
                 localStorage.theme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
             });
 
-            // --- 資料處理核心 ---
-            const getStoredData = () => JSON.parse(localStorage.getItem('myDataSystem') || '[]');
-            const saveStoredData = (data) => localStorage.setItem('myDataSystem', JSON.stringify(data));
+            // --- Firebase 初始化與認證 ---
+            const initializeFirebase = async () => {
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
 
+                    if (!firebaseConfig.apiKey) {
+                        showPlaceholderMessage('設定錯誤', '無法連接到雲端服務。');
+                        return;
+                    }
+
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    storage = getStorage(app);
+
+                    onAuthStateChanged(auth, user => {
+                        if (user) {
+                            userId = user.uid;
+                            console.log("已認證使用者:", userId);
+                            setupFirestoreListener(appId, userId);
+                        }
+                    });
+                    
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                } catch (error) {
+                    console.error("Firebase 初始化失敗:", error);
+                    showPlaceholderMessage('連線失敗', '無法連接到雲端，請檢查網路連線或稍後再試。');
+                }
+            };
+
+            // --- Firestore 即時資料監聽 ---
+            const setupFirestoreListener = (appId, currentUserId) => {
+                const dataCollectionPath = `artifacts/${appId}/users/${currentUserId}/data`;
+                const q = query(collection(db, dataCollectionPath), orderBy('timestamp', 'desc'));
+
+                if (unsubscribeFromFirestore) unsubscribeFromFirestore();
+
+                unsubscribeFromFirestore = onSnapshot(q, (snapshot) => {
+                    currentData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    handleSearch();
+                }, (error) => {
+                    console.error("Firestore 監聽錯誤:", error);
+                    showPlaceholderMessage('資料讀取錯誤', '無法從雲端同步資料。');
+                });
+            };
+
+            // --- UI 渲染與互動 ---
             const dataIcons = {
                 text: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />',
                 file: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />',
                 video: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />',
             };
 
+            const createSourceElement = (item) => {
+                if (!item.source) return '';
+                let displaySource = escapeHTML(item.fileName || item.source);
+                try {
+                    const isExternalLink = item.source.startsWith('http') || item.source.startsWith('www.');
+                    let linkSource = isExternalLink && item.source.startsWith('www.') ? 'https://' + item.source : item.source;
+                    
+                    const downloadAttribute = (item.type === 'file' || item.type === 'video') && item.fileName ? `download="${escapeHTML(item.fileName)}"` : '';
+
+                    return `<a href="${linkSource}" target="_blank" rel="noopener noreferrer" ${downloadAttribute} class="text-indigo-500 dark:text-indigo-400 hover:underline break-all">${displaySource}</a>`;
+                } catch (e) {
+                    return `<span class="text-gray-600 dark:text-gray-400 break-all">${displaySource}</span>`;
+                }
+            };
+            
             const renderData = (dataToRender) => {
                 dataContainer.innerHTML = '';
-                if (dataToRender.length === 0) {
-                    placeholder.classList.remove('hidden');
+                if (dataToRender.length === 0 && userId) {
+                    showPlaceholderMessage('沒有找到資料', '試著新增一些資料，或調整您的搜尋關鍵字。');
+                } else if (!userId) {
+                    // 維持初始訊息
                 } else {
                     placeholder.classList.add('hidden');
                 }
@@ -155,13 +266,12 @@
                 dataToRender.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'data-card bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-lg flex flex-col md:flex-row';
-                    
-                    const formattedDate = new Date(item.timestamp).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
-                    const formattedTime = new Date(item.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-
+                    const itemDate = item.timestamp?.toDate();
+                    const formattedDate = itemDate ? itemDate.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '無日期';
+                    const formattedTime = itemDate ? itemDate.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) : '';
                     card.innerHTML = `
                         <div class="flex-shrink-0 w-16 h-16 mb-4 md:mb-0 md:mr-5 bg-indigo-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                            <svg class="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">${dataIcons[item.type]}</svg>
+                            <svg class="h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">${dataIcons[item.type] || dataIcons['text']}</svg>
                         </div>
                         <div class="flex-grow">
                             <div class="flex justify-between items-start">
@@ -171,66 +281,130 @@
                                 </button>
                             </div>
                             <p class="text-sm text-gray-500 dark:text-gray-400">${formattedDate} ${formattedTime}</p>
+                            ${item.source ? `<div class="mt-2 text-sm">${createSourceElement(item)}</div>` : ''}
                             ${item.notes ? `<p class="notes-content mt-3 text-gray-700 dark:text-gray-300">${escapeHTML(item.notes)}</p>` : ''}
                         </div>
                     `;
                     dataContainer.appendChild(card);
                 });
             };
+            
+            const showPlaceholderMessage = (title, text) => {
+                placeholderTitle.textContent = title;
+                placeholderText.textContent = text;
+                placeholder.querySelector('svg').classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            };
 
-            const handleAddItem = (e) => {
+            const handleAddItem = async (e) => {
                 e.preventDefault();
                 const title = dataTitleInput.value.trim();
-                if (!title) return;
+                const type = dataTypeInput.value;
+                const file = dataFileInput.files[0];
 
-                const newItem = {
-                    id: Date.now(),
-                    title: title,
-                    type: dataTypeInput.value,
-                    notes: dataNotesInput.value.trim(),
-                    timestamp: new Date().toISOString()
-                };
-
-                const allData = getStoredData();
-                allData.unshift(newItem); // 將新項目加到最前面
-                saveStoredData(allData);
-                renderData(allData);
+                if (!title || !userId) return;
                 
-                // 清空表單
-                addDataForm.reset();
-                searchInput.value = '';
+                submitButton.disabled = true;
+
+                let newItem = {
+                    title: title,
+                    type: type,
+                    notes: dataNotesInput.value.trim(),
+                    timestamp: serverTimestamp(),
+                    source: '',
+                    storagePath: '',
+                    fileName: ''
+                };
+                
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+                    if ((type === 'file' || type === 'video') && file) {
+                        submitButton.textContent = '上傳中...';
+                        const storagePath = `artifacts/${appId}/users/${userId}/files/${Date.now()}-${file.name}`;
+                        const storageRef = ref(storage, storagePath);
+                        await uploadBytes(storageRef, file);
+                        const downloadURL = await getDownloadURL(storageRef);
+                        
+                        newItem.source = downloadURL;
+                        newItem.storagePath = storagePath;
+                        newItem.fileName = file.name;
+
+                    } else if (type === 'text') {
+                        submitButton.textContent = '儲存中...';
+                        newItem.source = dataSourceInput.value.trim();
+                    }
+                    
+                    await addDoc(collection(db, `artifacts/${appId}/users/${userId}/data`), newItem);
+                    addDataForm.reset();
+                    handleDataTypeChange(); // Reset form view
+                    searchInput.value = '';
+
+                } catch (error) {
+                    console.error("新增資料失敗:", error);
+                    alert("新增資料失敗，請稍後再試。");
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = '儲存資料';
+                }
             };
             
-            const handleContainerClick = (e) => {
+            const handleContainerClick = async (e) => {
                 const deleteButton = e.target.closest('.delete-btn');
-                if (deleteButton) {
-                    const idToDelete = parseInt(deleteButton.dataset.id, 10);
-                    let allData = getStoredData();
-                    allData = allData.filter(item => item.id !== idToDelete);
-                    saveStoredData(allData);
-                    // 重新渲染，如果搜尋框有值，則根據搜尋框的值渲染
-                    handleSearch();
+                if (deleteButton && userId) {
+                    const idToDelete = deleteButton.dataset.id;
+                    if (confirm('您確定要刪除這筆資料嗎？\n如果有關聯的檔案，將會一併從雲端刪除。')) {
+                        try {
+                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                            const docRef = doc(db, `artifacts/${appId}/users/${userId}/data`, idToDelete);
+                            const docSnap = await getDoc(docRef);
+
+                            if (docSnap.exists()) {
+                                const data = docSnap.data();
+                                // 如果有 storagePath，先刪除雲端儲存的檔案
+                                if (data.storagePath) {
+                                    const fileRef = ref(storage, data.storagePath);
+                                    await deleteObject(fileRef);
+                                }
+                            }
+                            // 刪除 Firestore 文件
+                            await deleteDoc(docRef);
+                        } catch (error) {
+                            console.error("刪除資料失敗:", error);
+                            alert("刪除資料失敗，檔案可能未完全清除，請稍後再試。");
+                        }
+                    }
                 }
             };
             
             const handleSearch = () => {
                 const searchTerm = searchInput.value.toLowerCase().trim();
-                const allData = getStoredData();
-
                 if (!searchTerm) {
-                    renderData(allData);
+                    renderData(currentData);
                     return;
                 }
-
-                const filteredData = allData.filter(item => {
-                    const itemDate = new Date(item.timestamp).toISOString().split('T')[0];
+                const filteredData = currentData.filter(item => {
+                    const itemDateStr = item.timestamp?.toDate()?.toISOString()?.split('T')[0] || '';
                     return (
                         item.title.toLowerCase().includes(searchTerm) ||
-                        item.notes.toLowerCase().includes(searchTerm) ||
-                        itemDate.includes(searchTerm)
+                        (item.source || '').toLowerCase().includes(searchTerm) ||
+                        (item.fileName || '').toLowerCase().includes(searchTerm) ||
+                        (item.notes || '').toLowerCase().includes(searchTerm) ||
+                        itemDateStr.includes(searchTerm)
                     );
                 });
                 renderData(filteredData);
+            };
+
+            const handleDataTypeChange = () => {
+                const selectedType = dataTypeInput.value;
+                if (selectedType === 'text') {
+                    textSourceWrapper.classList.remove('hidden');
+                    fileSourceWrapper.classList.add('hidden');
+                } else {
+                    textSourceWrapper.classList.add('hidden');
+                    fileSourceWrapper.classList.remove('hidden');
+                }
             };
             
             const escapeHTML = (str) => {
@@ -243,12 +417,13 @@
             addDataForm.addEventListener('submit', handleAddItem);
             dataContainer.addEventListener('click', handleContainerClick);
             searchInput.addEventListener('input', handleSearch);
+            dataTypeInput.addEventListener('change', handleDataTypeChange);
 
-            // --- 初始載入 ---
-            const initialData = getStoredData();
-            renderData(initialData);
+            // --- 程式進入點 ---
+            initializeFirebase();
         });
     </script>
 </body>
 </html>
+
 
