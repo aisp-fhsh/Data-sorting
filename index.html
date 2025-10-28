@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
@@ -47,7 +47,7 @@
             @apply bg-indigo-50 border border-indigo-300 text-indigo-700 font-semibold rounded-lg px-4 py-2 mr-4 hover:bg-indigo-100 cursor-pointer transition-colors;
         }
         input[type="file"] {
-             @apply text-sm text-gray-500;
+            @apply text-sm text-gray-500;
         }
     </style>
     <script>
@@ -142,7 +142,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
@@ -169,6 +169,17 @@
             let db, auth, storage, userId;
             let currentData = [];
             let unsubscribeFromFirestore = null;
+            
+            // *** 修正 #1：將 firebaseConfig 和 appId 移至全域範圍 ***
+            const firebaseConfig = {
+                apiKey: "AIzaSyBnJHlqw82FiyNFKAyp0tS6aQeUPlKt2Ns",
+                authDomain: "data-sorting-6efc9.firebaseapp.com",
+                projectId: "data-sorting-6efc9",
+                storageBucket: "data-sorting-6efc9.firebasestorage.app",
+                messagingSenderId: "145689757747",
+                appId: "1:145689757747:web:50c01e624be37215cb3b46",
+            };
+            const appId = firebaseConfig.appId; // Use the appId from the config
 
             // --- 主題切換 ---
             if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -182,16 +193,8 @@
             // --- Firebase 初始化與認證 ---
             const initializeFirebase = async () => {
                 try {
-                    // Firebase configuration for your Web App - UPDATED HERE
-                    const firebaseConfig = {
-                      apiKey: "AIzaSyBnJHlqw82FiyNFKAyp0tS6aQeUPlKt2Ns",
-                      authDomain: "data-sorting-6efc9.firebaseapp.com",
-                      projectId: "data-sorting-6efc9",
-                      storageBucket: "data-sorting-6efc9.firebasestorage.app",
-                      messagingSenderId: "145689757747",
-                      appId: "1:145689757747:web:50c01e624be37215cb3b46",
-                    };
-                    const appId = firebaseConfig.appId; // Use the appId from the config
+                    // *** 修正 #2：移除此處的 firebaseConfig 和 appId 宣告 ***
+                    // (已移至全域)
 
                     if (!firebaseConfig.apiKey) {
                         showPlaceholderMessage('設定錯誤', '無法連接到雲端服務。');
@@ -207,12 +210,11 @@
                         if (user) {
                             userId = user.uid;
                             console.log("已認證使用者:", userId);
+                            // *** 修正 #3：確認 setupFirestoreListener 使用全域 appId ***
                             setupFirestoreListener(appId, userId);
                         }
                     });
                     
-                    // Since we have specific config, we can try to sign in anonymously
-                    // If you intend to use custom tokens, you'd integrate that logic here.
                     await signInAnonymously(auth);
 
                 } catch (error) {
@@ -222,9 +224,8 @@
             };
 
             // --- Firestore 即時資料監聽 ---
-            const setupFirestoreListener = (appId, currentUserId) => {
-                // Ensure appId is defined and used correctly here
-                const dataCollectionPath = `artifacts/${appId}/users/${currentUserId}/data`;
+            const setupFirestoreListener = (currentAppId, currentUserId) => {
+                const dataCollectionPath = `artifacts/${currentAppId}/users/${currentUserId}/data`;
                 const q = query(collection(db, dataCollectionPath), orderBy('timestamp', 'desc'));
 
                 if (unsubscribeFromFirestore) unsubscribeFromFirestore();
@@ -324,8 +325,8 @@
                 };
                 
                 try {
-                    // Use the appId from the global scope (set in initializeFirebase)
-                    const appId = firebaseConfig.appId; 
+                    // *** 修正 #4：確認此處使用的是全域 appId ***
+                    // (已在全域定義)
 
                     if ((type === 'file' || type === 'video') && file) {
                         submitButton.textContent = '上傳中...';
@@ -361,10 +362,11 @@
                 const deleteButton = e.target.closest('.delete-btn');
                 if (deleteButton && userId) {
                     const idToDelete = deleteButton.dataset.id;
-                    if (confirm('您確定要刪除這筆資料嗎？\n如果有關聯的檔案，將會一併從雲端刪除。')) {
+                    // 使用瀏覽器內建的 confirm，而不是 alert
+                    if (window.confirm('您確定要刪除這筆資料嗎？\n如果有關聯的檔案，將會一併從雲端刪除。')) {
                         try {
-                            // Use the appId from the global scope (set in initializeFirebase)
-                            const appId = firebaseConfig.appId;
+                            // *** 修正 #5：確認此處使用的是全域 appId ***
+                            // (已在全域定義)
                             const docRef = doc(db, `artifacts/${appId}/users/${userId}/data`, idToDelete);
                             const docSnap = await getDoc(docRef);
 
@@ -380,7 +382,8 @@
                             await deleteDoc(docRef);
                         } catch (error) {
                             console.error("刪除資料失敗:", error);
-                            alert("刪除資料失敗，檔案可能未完全清除，請稍後再試。");
+                            // 使用瀏覽器內建的 alert
+                            window.alert("刪除資料失敗，檔案可能未完全清除，請稍後再試。");
                         }
                     }
                 }
@@ -417,6 +420,7 @@
             };
             
             const escapeHTML = (str) => {
+                if (typeof str !== 'string') return '';
                 const p = document.createElement('p');
                 p.textContent = str;
                 return p.innerHTML;
@@ -434,3 +438,4 @@
     </script>
 </body>
 </html>
+
