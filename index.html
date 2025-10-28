@@ -223,15 +223,23 @@
             const setupFirestoreListener = (currentAppId, currentUserId) => {
                 const dataCollectionPath = `artifacts/${currentAppId}/users/${currentUserId}/data`;
                 
-                // *** 修正 #1：移除 orderBy，因為它需要索引 ***
+                // 移除 orderBy，改用本地排序
                 const q = query(collection(db, dataCollectionPath));
 
                 if (unsubscribeFromFirestore) unsubscribeFromFirestore();
 
                 unsubscribeFromFirestore = onSnapshot(q, (snapshot) => {
+                    // *** 修正 #1：只在伺服器確認後才更新 UI ***
+                    // 這可以防止「無日期」的狀態出現
+                    if (snapshot.metadata.hasPendingWrites) {
+                        console.log("偵測到本地寫入，等待伺服器確認...");
+                        return; 
+                    }
+                    console.log("收到來自伺服器的完整資料。");
+
                     currentData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                     
-                    // *** 修正 #2：在本地端進行排序 ***
+                    // 在本地端進行排序
                     currentData.sort((a, b) => {
                         const dateA = a.timestamp?.toDate() || 0;
                         const dateB = b.timestamp?.toDate() || 0;
@@ -252,19 +260,16 @@
                 video: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />',
             };
 
-            // *** 修正 #3：更新 createSourceElement 邏輯 ***
             const createSourceElement = (item) => {
-                // 如果 source 是空的 (例如只輸入標題和備註)
                 if (!item.source) {
                     if (item.type === 'text') {
                         return `<span class="text-gray-500 dark:text-gray-400">未提供連結</span>`;
                     } else if (item.type === 'file' || item.type === 'video') {
                         return `<span class="text-gray-500 dark:text-gray-400">未上傳檔案</span>`;
                     }
-                    return ''; // 其他情況
+                    return '';
                 }
 
-                // 如果 source 不是空的
                 let displaySource = escapeHTML(item.fileName || item.source);
                 try {
                     const isExternalLink = item.source.startsWith('http') || item.source.startsWith('www.');
@@ -293,7 +298,6 @@
                     card.className = 'data-card bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-lg flex flex-col md:flex-row';
                     const itemDate = item.timestamp?.toDate();
                     
-                    // *** 修正 #4：確保日期和時間正確顯示 ***
                     const formattedDate = itemDate ? itemDate.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '無日期';
                     const formattedTime = itemDate ? itemDate.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) : '';
                     
@@ -308,9 +312,7 @@
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             </div>
-                            <!-- 確保日期和時間被渲染 -->
                             <p class="text-sm text-gray-500 dark:text-gray-400">${formattedDate} ${formattedTime}</p>
-                            <!-- 確保 createSourceElement 被呼叫 -->
                             <div class="mt-2 text-sm">${createSourceElement(item)}</div>
                             ${item.notes ? `<p class="notes-content mt-3 text-gray-700 dark:text-gray-300">${escapeHTML(item.notes)}</p>` : ''}
                         </div>
@@ -370,7 +372,9 @@
 
                 } catch (error) {
                     console.error("新增資料失敗:", error);
-                    alert("新增資料失敗，請稍後再試。");
+                    // *** 修正 #2：移除 alert() ***
+                    // alert("新增資料失敗，請稍後再試。");
+                    console.error("!!! 您可能需要檢查您的 Firebase 安全規則 (Firestore & Storage) !!!");
                 } finally {
                     submitButton.disabled = false;
                     submitButton.textContent = '儲存資料';
@@ -381,6 +385,7 @@
                 const deleteButton = e.target.closest('.delete-btn');
                 if (deleteButton && userId) {
                     const idToDelete = deleteButton.dataset.id;
+                    // *** 修正 #3：使用 window.confirm 來避免卡住 ***
                     if (window.confirm('您確定要刪除這筆資料嗎？\n如果有關聯的檔案，將會一併從雲端刪除。')) {
                         try {
                             const docRef = doc(db, `artifacts/${appId}/users/${userId}/data`, idToDelete);
@@ -396,7 +401,8 @@
                             await deleteDoc(docRef);
                         } catch (error) {
                             console.error("刪除資料失敗:", error);
-                            window.alert("刪除資料失敗，檔案可能未完全清除，請稍後再試。");
+                            // *** 修正 #4：移除 alert() ***
+                            // alert("刪除資料失敗，檔案可能未完全清除，請稍後再試。");
                         }
                     }
                 }
